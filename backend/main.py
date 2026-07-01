@@ -1,10 +1,13 @@
 import os
+from pathlib import Path
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List, Optional
 import crud, models, schemas
 from database import SessionLocal, engine
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -12,6 +15,10 @@ app = FastAPI(title="Todo API", version="2.0")
 
 origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:5173").split(",")
 origins.append("*")
+
+frontend_dist = Path(__file__).resolve().parent.parent / "frontend" / "dist"
+if frontend_dist.exists():
+    app.mount("/assets", StaticFiles(directory=frontend_dist / "assets"), name="assets")
 
 app.add_middleware(
     CORSMiddleware,
@@ -31,6 +38,18 @@ def get_db():
 @app.post("/todos/", response_model=schemas.Todo)
 def create_todo(todo: schemas.TodoCreate, db: Session = Depends(get_db)):
     return crud.create_todo(db=db, todo=todo)
+
+if frontend_dist.exists():
+    @app.get("/", include_in_schema=False)
+    async def serve_frontend_root():
+        return FileResponse(frontend_dist / "index.html")
+
+    @app.get("/{full_path:path}", include_in_schema=False)
+    async def serve_frontend(full_path: str):
+        candidate = (frontend_dist / full_path).resolve()
+        if candidate.exists() and candidate.is_file():
+            return FileResponse(candidate)
+        return FileResponse(frontend_dist / "index.html")
 
 @app.get("/todos/", response_model=List[schemas.Todo])
 def read_todos(
