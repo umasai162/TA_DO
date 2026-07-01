@@ -9,17 +9,18 @@ const CATEGORIES = [
 ]
 
 function Sidebar({ todos, activeCategory, onSelectCategory }) {
-    const total = todos.length
-    const done = todos.filter(t => t.completed).length
+    const safeTodos = Array.isArray(todos) ? todos : []
+    const total = safeTodos.length
+    const done = safeTodos.filter(t => t.completed).length
     const pct = total === 0 ? 0 : Math.round((done / total) * 100)
 
     function countFor(catId) {
-        if (catId === 'All') return todos.length
+        if (catId === 'All') return safeTodos.length
         if (catId === 'Today') {
             const today = new Date().toISOString().split('T')[0]
-            return todos.filter(t => t.due_date === today).length
+            return safeTodos.filter(t => t.due_date === today).length
         }
-        return todos.filter(t => t.category === catId).length
+        return safeTodos.filter(t => t.category === catId).length
     }
 
     return (

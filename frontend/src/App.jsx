@@ -24,15 +24,19 @@ export default function App() {
     const fetchTodos = async () => {
         try {
             const res = await api.get('/todos/')
-            setTodos(normalizeTodos(res.data))
-        } catch (e) { console.error(e) }
+            const data = normalizeTodos(res.data);
+            setTodos(data);
+        } catch (e) { 
+            console.error('Failed to fetch todos:', e);
+            setTodos([]);
+        }
     }
 
     const handleAdd = async (formData) => {
         try {
             const res = await api.post('/todos/', formData)
             if (res?.data && typeof res.data === 'object') {
-                setTodos(prev => [res.data, ...prev])
+                setTodos(prev => [res.data, ...normalizeTodos(prev)])
             }
         } catch (e) { console.error(e) }
     }
@@ -40,14 +44,14 @@ export default function App() {
     const handleToggle = async (id, completed) => {
         try {
             const res = await api.put(`/todos/${id}`, { completed: !completed })
-            setTodos(prev => prev.map(t => t.id === id ? res.data : t))
+            setTodos(prev => normalizeTodos(prev).map(t => t.id === id ? res.data : t))
         } catch (e) { console.error(e) }
     }
 
     const handleDelete = async (id) => {
         try {
             await api.delete(`/todos/${id}`)
-            setTodos(prev => prev.filter(t => t.id !== id))
+            setTodos(prev => normalizeTodos(prev).filter(t => t.id !== id))
         } catch (e) { console.error(e) }
     }
 
@@ -87,8 +91,8 @@ export default function App() {
         return list
     }, [todos, activeCategory, search, filter, sortBy])
 
-    const total = todos.length
-    const done = todos.filter(t => t.completed).length
+    const total = normalizeTodos(todos).length
+    const done = normalizeTodos(todos).filter(t => t.completed).length
 
     return (
         <div className="layout">
