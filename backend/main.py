@@ -18,7 +18,7 @@ origins.append("*")
 
 frontend_dist = Path(__file__).resolve().parent.parent / "frontend" / "dist"
 if frontend_dist.exists():
-    app.mount("/assets", StaticFiles(directory=frontend_dist / "assets"), name="assets")
+    app.mount("/assets", StaticFiles(directory=str(frontend_dist / "assets")), name="assets")
 
 app.add_middleware(
     CORSMiddleware,
@@ -38,18 +38,6 @@ def get_db():
 @app.post("/todos/", response_model=schemas.Todo)
 def create_todo(todo: schemas.TodoCreate, db: Session = Depends(get_db)):
     return crud.create_todo(db=db, todo=todo)
-
-if frontend_dist.exists():
-    @app.get("/", include_in_schema=False)
-    async def serve_frontend_root():
-        return FileResponse(frontend_dist / "index.html")
-
-    @app.get("/{full_path:path}", include_in_schema=False)
-    async def serve_frontend(full_path: str):
-        candidate = (frontend_dist / full_path).resolve()
-        if candidate.exists() and candidate.is_file():
-            return FileResponse(candidate)
-        return FileResponse(frontend_dist / "index.html")
 
 @app.get("/todos/", response_model=List[schemas.Todo])
 def read_todos(
@@ -80,3 +68,15 @@ def delete_todo(todo_id: int, db: Session = Depends(get_db)):
     if db_todo is None:
         raise HTTPException(status_code=404, detail="Todo not found")
     return db_todo
+
+if frontend_dist.exists():
+    @app.get("/", include_in_schema=False)
+    async def serve_frontend_root():
+        return FileResponse(frontend_dist / "index.html")
+
+    @app.get("/{full_path:path}", include_in_schema=False)
+    async def serve_frontend(full_path: str):
+        candidate = (frontend_dist / full_path).resolve()
+        if candidate.exists() and candidate.is_file():
+            return FileResponse(candidate)
+        return FileResponse(frontend_dist / "index.html")

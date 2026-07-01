@@ -9,6 +9,8 @@ const TITLE_MAP = {
     Personal: 'Personal', Shopping: 'Shopping', Health: 'Health', Other: 'Other',
 }
 
+const normalizeTodos = (value) => Array.isArray(value) ? value : []
+
 export default function App() {
     const [todos, setTodos] = useState([])
     const [activeCategory, setActiveCategory] = useState('All')
@@ -22,14 +24,16 @@ export default function App() {
     const fetchTodos = async () => {
         try {
             const res = await api.get('/todos/')
-            setTodos(res.data)
+            setTodos(normalizeTodos(res.data))
         } catch (e) { console.error(e) }
     }
 
     const handleAdd = async (formData) => {
         try {
             const res = await api.post('/todos/', formData)
-            setTodos(prev => [res.data, ...prev])
+            if (res?.data && typeof res.data === 'object') {
+                setTodos(prev => [res.data, ...prev])
+            }
         } catch (e) { console.error(e) }
     }
 
